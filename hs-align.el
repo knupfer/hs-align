@@ -27,23 +27,49 @@
 
 (require 'haskell-mode)
 
+(defvar hs-align-operator-list '("=" "::" "--" "|"))
+
 (defun hs-align ()
-  "Align operators in current block."
   (interactive)
+  (mapc 'hs-align-search hs-align-operator-list))
+
+(defun hs-align-search (operator)
+  "Align operators in current block."
   (setq op-list nil)
   (save-excursion
-    (let (beg end (count 0) line-count)
+    (let (beg end (count 0) line-count (maxcol 0))
       (setq line-count (line-number-at-pos))
       (forward-line 0)
       (re-search-backward "^[^ ]" nil t)
       (setq line-count (line-number-at-pos))
-      (while (and (re-search-forward "^.*[^ ]\\( +\\)= .+$" nil t)
+      (while (and (re-search-forward
+		   (concat "^.*?\\( +\\)"
+			   operator " .+$") nil t)
 		  (<= -1 (- line-count (setq line-count
 					     (line-number-at-pos)))))
-	(let ((leng (- (match-end 0) (match-beginning 0)))
+	(let ((posi (match-end 1))
+	      (leng (- (match-end 0) (match-beginning 0)))
 	      (space (- (match-end 1) (match-beginning 1)))
-	      (pos (match-end 1)))
-	  (setq op-list (cons (list leng space pos) op-list)))))))
+	      (col (- (match-end 1) (match-beginning 0))))
+	  (setq op-list (cons (list posi leng space col) op-list)
+		maxcol (max maxcol (- col space -1)))))
+      (hs-align-insert op-list maxcol))))
+
+(defun hs-align-insert (oplist maxcol)
+  (while oplist
+    (let ((elem (pop oplist)))
+      (save-excursion
+	(goto-char (nth 0 elem))
+	(if (and (> 72 (nth 1 elem)) (> maxcol (nth 3 elem)))
+	    (insert (make-string (min (- 72 (nth 1 elem))
+				      (- maxcol (nth 3 elem))) ?\s))
+	  (if (< maxcol (nth 3 elem))
+	      (delete-region (- (nth 0 elem) (- (nth 3 elem) maxcol))
+			     (nth 0 elem))
+	    (when (and (<= 72 (nth 1 elem)) (< 1 (nth 2 elem)))
+	      (delete-region (- (nth 0 elem) (min (1- (nth 2 elem))
+						  (- (nth 1 elem) 72)))
+			     (nth 0 elem)))))))))
 
 (provide 'hs-align)
 
