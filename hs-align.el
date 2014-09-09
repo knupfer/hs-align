@@ -27,6 +27,24 @@
 
 (require 'haskell-mode)
 
+(defun hs-align ()
+  "Align operators in current block."
+  (interactive)
+  (setq op-list nil)
+  (save-excursion
+    (let (beg end (count 0) line-count)
+      (setq line-count (line-number-at-pos))
+      (forward-line 0)
+      (re-search-backward "^[^ ]" nil t)
+      (setq line-count (line-number-at-pos))
+      (while (and (re-search-forward "^.*[^ ]\\( +\\)= .+$" nil t)
+		  (<= -1 (- line-count (setq line-count
+					     (line-number-at-pos)))))
+	(let ((leng (- (match-end 0) (match-beginning 0)))
+	      (space (- (match-end 1) (match-beginning 1)))
+	      (pos (match-end 1)))
+	  (setq op-list (cons (list leng space pos) op-list)))))))
+
 (provide 'hs-align)
 
 ;;; hs-align.el ends here
