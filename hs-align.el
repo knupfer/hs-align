@@ -28,17 +28,18 @@
 (require 'haskell-mode)
 
 (defvar hs-align-operator-list '(("=" 10) ("::" 6)
-				 ("--" 6) (">>=" 4)
-				 ("<-" 3) ("->" 3) ("=>" 3)
-				 ("==" 2) ("/=" 2)
-				 ("<=" 2) ("<" 2)
-				 (">=" 2) (">" 2)
-				 ("|" 2) ("." 2)
-				 ("/" 1) ("*" 1)
-				 ("+" 1) ("-" 1)
-				 ("(" 1) (")" 1)
-				 ("[" 1) ("]" 1)))
-
+                                 ("--" 12) (">>=" 4)
+                                 (">=>" 4) ("<=<" 4)
+                                 ("," 8) ("=>" 3)
+                                 ("<-" 3) ("->" 3)
+                                 ("==" 2) ("/=" 2)
+                                 ("<=" 2) ("<" 2)
+                                 (">=" 2) (">" 2)
+                                 ("|" 2) ("." 2)
+                                 ("/" 1) ("*" 1)
+                                 ("+" 1) ("-" 1)
+                                 ("(" 1) (")" 1)
+                                 ("[" 1) ("]" 1)))
 
 (define-minor-mode hs-align-mode
   "Auto align operators and other keywords.
@@ -68,32 +69,32 @@ thrown away."
 Receive a ENUM-OPERATOR list and split it in operators and
 distances."
   (let ((operator (regexp-quote (car enum-operator)))
-	(operator-non-esc (car enum-operator))
-	(dist (cadr enum-operator))
-	(oplist nil))
+        (operator-non-esc (car enum-operator))
+        (dist (cadr enum-operator))
+        (oplist nil))
     (save-excursion
       (let (beg end (count 0) line-count (maxcol 0) (mincol 72))
-	(setq line-count (line-number-at-pos))
-	(forward-line 0)
-	(re-search-backward (concat "^\\([^" operator-non-esc
-				    "]\\|[^ ]" operator
-				    "\\|" operator
-				    "[^ ]\\)*$") nil t)
-	(setq line-count (line-number-at-pos))
-	(while (and (re-search-forward
-		     (concat "^.*?\\( +\\)"
-			     operator " .+$") nil t)
-		    (<= -1 (- line-count (setq line-count
-					       (line-number-at-pos)))))
-	  (let ((posi (match-end 1))
-		(leng (- (match-end 0) (match-beginning 0)))
-		(space (- (match-end 1) (match-beginning 1)))
-		(col (- (match-end 1) (match-beginning 0))))
-	    (setq oplist (cons (list posi leng space col) oplist)
-		  maxcol (max maxcol (- col space -1))
-		  mincol (min mincol (- col space -1)))))
-	(when (and oplist (<=  (- maxcol mincol) dist))
-	  (hs-align-insert oplist maxcol))))))
+        (setq line-count (line-number-at-pos))
+        (forward-line 0)
+        (re-search-backward (concat "^\\([^" operator-non-esc
+                                    "]\\|[^ ]" operator
+                                    "\\|" operator
+                                    "[^ ]\\)*$") nil t)
+        (setq line-count (line-number-at-pos))
+        (while (and (re-search-forward
+                     (concat "^.*?\\( +\\)"
+                             operator " .+$") nil t)
+                    (<= -1 (- line-count (setq line-count
+                                               (line-number-at-pos)))))
+          (let ((posi (match-end 1))
+                (leng (- (match-end 0) (match-beginning 0)))
+                (space (- (match-end 1) (match-beginning 1)))
+                (col (- (match-end 1) (match-beginning 0))))
+            (setq oplist (cons (list posi leng space col) oplist)
+                  maxcol (max maxcol (- col space -1))
+                  mincol (min mincol (- col space -1)))))
+        (when (and oplist (<=  (- maxcol mincol) dist))
+          (hs-align-insert oplist maxcol))))))
 
 (defun hs-align-insert (oplist maxcol)
   "Insert or remove whitespace.
@@ -103,17 +104,17 @@ which represents the leftmost operator in this block."
   (while oplist
     (let ((elem (pop oplist)))
       (save-excursion
-	(goto-char (nth 0 elem))
-	(if (and (> 72 (nth 1 elem)) (> maxcol (nth 3 elem)))
-	    (insert (make-string (min (- 72 (nth 1 elem))
-				      (- maxcol (nth 3 elem))) ?\s))
-	  (if (< maxcol (nth 3 elem))
-	      (delete-region (- (nth 0 elem) (- (nth 3 elem) maxcol))
-			     (nth 0 elem))
-	    (when (and (<= 72 (nth 1 elem)) (< 1 (nth 2 elem)))
-	      (delete-region (- (nth 0 elem) (min (1- (nth 2 elem))
-						  (- (nth 1 elem) 72)))
-			     (nth 0 elem)))))))))
+        (goto-char (nth 0 elem))
+        (if (and (> 72 (nth 1 elem)) (> maxcol (nth 3 elem)))
+            (insert (make-string (min (- 72 (nth 1 elem))
+                                      (- maxcol (nth 3 elem))) ?\s))
+          (if (< maxcol (nth 3 elem))
+              (delete-region (- (nth 0 elem) (- (nth 3 elem) maxcol))
+                             (nth 0 elem))
+            (when (and (<= 72 (nth 1 elem)) (< 1 (nth 2 elem)))
+              (delete-region (- (nth 0 elem) (min (1- (nth 2 elem))
+                                                  (- (nth 1 elem) 72)))
+                             (nth 0 elem)))))))))
 
 (provide 'hs-align)
 
