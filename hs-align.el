@@ -27,7 +27,7 @@
 
 (require 'haskell-mode)
 
-(defvar hs-align-operator-list '(("=" 8) ("::" 8)
+(defvar hs-align-operator-list '(("=" 10) ("::" 6)
 				 ("--" 6) (">>=" 4)
 				 ("<-" 3) ("->" 3) ("=>" 3)
 				 ("==" 2) ("/=" 2)
@@ -59,6 +59,7 @@ difference is lower than the second argument in
 
 Vars A B and C are required by `after-change-functions' but
 thrown away."
+  (mapc 'hs-align-search hs-align-operator-list)
   (mapc 'hs-align-search hs-align-operator-list))
 
 (defun hs-align-search (enum-operator)
