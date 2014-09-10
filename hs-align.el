@@ -126,12 +126,11 @@ which represents the leftmost operator in this block."
             (insert (make-string (min (- 72 (nth 1 elem))
                                       (- maxcol (nth 3 elem))) ?\s))
           (if (< maxcol (nth 3 elem))
-              (delete-region (- (nth 0 elem) (- (nth 3 elem) maxcol))
-                             (nth 0 elem))
-            (when (and (<= 72 (nth 1 elem)) (< 1 (nth 2 elem)))
-              (delete-region (- (nth 0 elem) (min (1- (nth 2 elem))
-                                                  (- (nth 1 elem) 72)))
-                             (nth 0 elem)))))))))
+	      (just-one-space (- (nth 2 elem) (- (nth 3 elem) maxcol)))
+	    (when (and (<= 72 (nth 1 elem)) (< 1 (nth 2 elem)))
+	      (just-one-space (- (nth 2 elem)
+				 (min (1- (nth 2 elem))
+				      (- (nth 1 elem) 72)))))))))))
 
 (provide 'hs-align)
 
