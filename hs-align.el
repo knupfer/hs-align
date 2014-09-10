@@ -40,7 +40,10 @@
     (let (beg end (count 0) line-count (maxcol 0))
       (setq line-count (line-number-at-pos))
       (forward-line 0)
-      (re-search-backward "^[^ ]" nil t)
+      (re-search-backward (concat "^\\([^" operator
+				  "]\\|[^ ]" operator
+				  "\\|" operator
+				  "[^ ]\\)*$") nil t)
       (setq line-count (line-number-at-pos))
       (while (and (re-search-forward
 		   (concat "^.*?\\( +\\)"
