@@ -28,7 +28,8 @@
 (require 'haskell-mode)
 
 (defvar hs-align-operator-list '(("=" 10) ("::" 6)
-                                 ("--" 12) (">>=" 4)
+				 ("--" 12) (">>=" 4)
+				 ("++" 4)
                                  (">=>" 4) ("<=<" 4)
                                  ("," 8) ("=>" 3)
                                  ("<-" 3) ("->" 3)
@@ -52,49 +53,61 @@ difference is lower than the second argument in
   :init-value nil
   :lighter " >>="
   :global nil
-  (if hs-align-mode (add-hook 'after-change-functions 'hs-align-block nil t)
-    (remove-hook 'after-change-functions 'hs-align-block t)))
+  (if hs-align-mode (add-hook 'post-command-hook 'hs-align-block nil t)
+    (remove-hook 'post-command-hook 'hs-align-block t)))
 
-(defun hs-align-block (a b c)
+(defun hs-align-block ()
   "Map the operators to the search.
 
 Vars A B and C are required by `after-change-functions' but
 thrown away."
-  (mapc 'hs-align-search hs-align-operator-list)
-  (mapc 'hs-align-search (reverse hs-align-operator-list)))
+  (mapc (lambda (x) (hs-align-search x 0)) hs-align-operator-list))
 
-(defun hs-align-search (enum-operator)
+(defun hs-align-search (enum-operator level)
   "Align operators in current block.
 
 Receive a ENUM-OPERATOR list and split it in operators and
-distances."
-  (let ((operator (regexp-quote (car enum-operator)))
-        (operator-non-esc (car enum-operator))
-        (dist (cadr enum-operator))
-        (oplist nil))
+distances.  LEVEL determines the recursion depth."
+  (let* ((operator (regexp-quote (car enum-operator)))
+	 (operator-non-esc (car enum-operator))
+	 (dist (cadr enum-operator))
+	 (oplist nil)
+	 (no-op-reg (concat "\\([^" operator-non-esc
+			    "]\\|[^ ]" operator
+			    "\\|" operator
+			    "[^ ]\\)*?"))
+	 (op-reg (concat " " operator " "))
+	 (maxcol 0)
+	 (mincol 72)
+	 line-count)
     (save-excursion
-      (let (beg end (count 0) line-count (maxcol 0) (mincol 72))
-        (setq line-count (line-number-at-pos))
-        (forward-line 0)
-        (re-search-backward (concat "^\\([^" operator-non-esc
-                                    "]\\|[^ ]" operator
-                                    "\\|" operator
-                                    "[^ ]\\)*$") nil t)
-        (setq line-count (line-number-at-pos))
-        (while (and (re-search-forward
-                     (concat "^.*?\\( +\\)"
-                             operator " .+$") nil t)
-                    (<= -1 (- line-count (setq line-count
-                                               (line-number-at-pos)))))
-          (let ((posi (match-end 1))
-                (leng (- (match-end 0) (match-beginning 0)))
-                (space (- (match-end 1) (match-beginning 1)))
-                (col (- (match-end 1) (match-beginning 0))))
-            (setq oplist (cons (list posi leng space col) oplist)
-                  maxcol (max maxcol (- col space -1))
-                  mincol (min mincol (- col space -1)))))
-        (when (and oplist (<=  (- maxcol mincol) dist))
-          (hs-align-insert oplist maxcol))))))
+      (forward-line 0)
+      (re-search-backward (concat "^" no-op-reg
+				  "\\(" op-reg no-op-reg "\\)\\{,"
+				  (number-to-string level) "\\}$") nil t)
+      (setq line-count (line-number-at-pos))
+      (while (and (re-search-forward
+		   (concat "^.*?\\(?:" op-reg ".*?\\)\\{"
+			   (number-to-string level) "\\}"
+			   "\\( +\\)" operator " .+$") nil t)
+		  (<= -1 (- line-count (setq line-count
+					     (line-number-at-pos)))))
+	(let ((posi (match-end 1))
+	      (leng (- (match-end 0) (match-beginning 0)))
+	      (space (- (match-end 1) (match-beginning 1)))
+	      (col (- (match-end 1) (match-beginning 0))))
+	  (setq maxcol (max maxcol (- col space -1))
+		mincol (min mincol (- col space -1)))
+
+	  (when (< dist (- maxcol mincol))
+	    (setq oplist (cons maxcol oplist))
+	    (setq mincol (- col space -1))
+	    (setq maxcol (- col space -1)))
+	  (setq oplist (cons (list posi leng space col) oplist))))
+      (when (and oplist (<= (- maxcol mincol) dist))
+	(hs-align-insert oplist maxcol)))
+    (when oplist
+      (hs-align-search enum-operator (1+ level)))))
 
 (defun hs-align-insert (oplist maxcol)
   "Insert or remove whitespace.
@@ -102,6 +115,8 @@ distances."
 Retrieve from OPLIST pos of operator and compare it to MAXCOL,
 which represents the leftmost operator in this block."
   (while oplist
+    (when (numberp (car oplist))
+      (setq maxcol (pop oplist)))
     (let ((elem (pop oplist)))
       (save-excursion
         (goto-char (nth 0 elem))
