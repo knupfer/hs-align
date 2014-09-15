@@ -27,12 +27,12 @@
 
 (require 'haskell-mode)
 
-(defvar hs-align-operator-list '(("=" 10) ("::" 6)
+(defvar hs-align-operator-list '(("=" 14) ("::" 6)
 				 ("--" 12) (">>=" 4)
 				 ("++" 4) ("$" 4)
 				 ("\\" 2) (">>" 2)
                                  (">=>" 4) ("<=<" 4)
-                                 ("," 8) ("=>" 3)
+                                 ("," 14) ("=>" 3)
                                  ("<-" 3) ("->" 3)
                                  ("==" 2) ("/=" 2)
                                  ("<=" 2) ("<" 2)
@@ -40,8 +40,6 @@
                                  ("|" 2) ("." 2)
                                  ("/" 1) ("*" 1)
                                  ("+" 1) ("-" 1)
-                                 ("(" 1) (")" 1)
-                                 ("[" 1) ("]" 1)
 				 (":" 1) ("." 1)))
 
 (define-minor-mode hs-align-mode
@@ -84,14 +82,14 @@ distances.  LEVEL determines the recursion depth."
 	 line-count)
     (save-excursion
       (forward-line 0)
-      (re-search-backward (concat "^" no-op-reg
+      (re-search-backward (concat "^ *[^ ]" no-op-reg
 				  "\\(" op-reg no-op-reg "\\)\\{,"
 				  (number-to-string level) "\\}$") nil t)
       (setq line-count (line-number-at-pos))
       (while (and (re-search-forward
-		   (concat "^.*?\\(?:" op-reg ".*?\\)\\{"
+		   (concat "^ *[^ ].*?\\(?:" op-reg ".*?\\)\\{"
 			   (number-to-string level) "\\}"
-			   "\\( +\\)" operator " .+$") nil t)
+			   "\\( +\\)" operator "\\( .*$\\|$\\)") nil t)
 		  (<= -1 (- line-count (setq line-count
 					     (line-number-at-pos)))))
 	(let ((posi (match-end 1))
